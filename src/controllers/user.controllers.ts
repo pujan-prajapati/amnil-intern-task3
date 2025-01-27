@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { Users } from "../entity/users.entity";
 import * as asyncHandler from "express-async-handler";
-import { AppDataSource } from "../data-source";
 
 // create a user
 export const createUser = asyncHandler(async (req: Request, res: Response) => {
