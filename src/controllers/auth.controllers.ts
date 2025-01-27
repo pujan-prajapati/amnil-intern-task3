@@ -6,6 +6,7 @@ import {
   generateAccessToken,
   generateRefreshToken,
 } from "../utils/generateToken";
+import { ApiResponse } from "../utils/ApiResponse";
 
 // register user
 export const registerUser = asyncHandler(
@@ -28,10 +29,9 @@ export const registerUser = asyncHandler(
 
     await user.save();
 
-    res.status(201).json({
-      message: "User created successfully",
-      user,
-    });
+    res
+      .status(201)
+      .json(new ApiResponse(201, user, "User created successfully"));
   }
 );
 
@@ -60,10 +60,13 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
       .status(200)
       .cookie("accessToken", accessToken, options)
       .cookie("refreshToken", refreshToken, options)
-      .json({
-        message: "User logged in successfully",
-        data: { user: findUser, accessToken, refreshToken },
-      });
+      .json(
+        new ApiResponse(
+          200,
+          { user: findUser, accessToken, refreshToken },
+          "User logged in successfully"
+        )
+      );
   } else {
     throw new Error("Invalid credentials");
   }
@@ -80,11 +83,11 @@ export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
 export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
   const [users, totalUsers] = await Auth.findAndCount();
 
-  res.status(200).json({
-    message: "Users fetched successfully",
-    users,
-    totalUsers,
-  });
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, { users, totalUsers }, "Users fetched successfully")
+    );
 });
 
 // get user by id
@@ -96,10 +99,9 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
     throw new Error("User not found");
   }
 
-  res.status(200).json({
-    message: "User fetched successfully",
-    user: findUser,
-  });
+  res
+    .status(200)
+    .json(new ApiResponse(200, findUser, "User fetched successfully"));
 });
 
 // delete user
@@ -113,10 +115,7 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
 
   await Auth.delete(findUser.id);
 
-  res.status(200).json({
-    message: "User deleted successfully",
-    user: findUser,
-  });
+  res.status(200).json(new ApiResponse(200, null, "User deleted successfully"));
 });
 
 // update user info
@@ -144,9 +143,6 @@ export const updateUserPassword = asyncHandler(
 
     await findUser.save();
 
-    res.status(200).json({
-      message: "User password updated successfully",
-      user: findUser,
-    });
+    res.status(200).json(new ApiResponse(200, null, "Password updated"));
   }
 );
