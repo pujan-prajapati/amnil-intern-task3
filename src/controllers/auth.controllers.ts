@@ -1,33 +1,20 @@
 import { Request, Response } from "express";
-import { Auth } from "../entity/auth.entity";
 import * as asyncHandler from "express-async-handler";
-import * as bcryptjs from "bcryptjs";
-import {
-  generateAccessToken,
-  generateRefreshToken,
-} from "../utils/generateToken";
 import { ApiResponse } from "../utils/ApiResponse";
+import * as authServices from "../services/auth.services";
+import { validateId } from "../utils/validateId";
 
 // register user
 export const registerUser = asyncHandler(
   async (req: Request, res: Response) => {
     const { username, email, password, phone } = req.body;
 
-    const findUser = await Auth.findOneBy({ email });
-    if (findUser) {
-      throw new Error("User already exists");
-    }
-
-    const hashedPassword = await bcryptjs.hash(password, 10);
-
-    const user = Auth.create({
+    const user = await authServices.registerUser(
       username,
       email,
-      password: hashedPassword,
-      phone,
-    });
-
-    await user.save();
+      password,
+      phone
+    );
 
     res
       .status(201)
@@ -39,37 +26,27 @@ export const registerUser = asyncHandler(
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  const findUser = await Auth.findOneBy({
+  const { user, accessToken, refreshToken } = await authServices.loginUser(
     email,
-  });
-  if (findUser) {
-    const isPasswordMatch = await bcryptjs.compare(password, findUser.password);
-    if (!isPasswordMatch) {
-      throw new Error("Invalid credentials");
-    }
+    password
+  );
 
-    const accessToken = await generateAccessToken(findUser.id);
-    const refreshToken = await generateRefreshToken(findUser.id);
+  const options = {
+    secure: true,
+    httpOnly: true,
+  };
 
-    const options = {
-      secure: true,
-      httpOnly: true,
-    };
-
-    res
-      .status(200)
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", refreshToken, options)
-      .json(
-        new ApiResponse(
-          200,
-          { user: findUser, accessToken, refreshToken },
-          "User logged in successfully"
-        )
-      );
-  } else {
-    throw new Error("Invalid credentials");
-  }
+  res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        { user, accessToken, refreshToken },
+        "User logged in successfully"
+      )
+    );
 });
 
 // logout user
@@ -81,7 +58,7 @@ export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
 
 // get all users
 export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
-  const [users, totalUsers] = await Auth.findAndCount();
+  const { users, totalUsers } = await authServices.getAllUsers();
 
   res
     .status(200)
@@ -93,11 +70,9 @@ export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
 // get user by id
 export const getUserById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
+  validateId(id);
 
-  const findUser = await Auth.findOne({ where: { id } });
-  if (!findUser) {
-    throw new Error("User not found");
-  }
+  const findUser = await authServices.getUserById(id);
 
   res
     .status(200)
@@ -107,14 +82,9 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
 // delete user
 export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
+  validateId(id);
 
-  const findUser = await Auth.findOne({ where: { id } });
-  if (!findUser) {
-    throw new Error("User not found");
-  }
-
-  await Auth.delete(findUser.id);
-
+  await authServices.deleteUser(id);
   res.status(200).json(new ApiResponse(200, null, "User deleted successfully"));
 });
 
@@ -122,26 +92,10 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
 export const updateUserPassword = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
+    validateId(id);
     const { oldPassword, newPassword } = req.body;
 
-    const findUser = await Auth.findOne({ where: { id } });
-    if (!findUser) {
-      throw new Error("User not found");
-    }
-
-    const isOldPasswordMatch = await bcryptjs.compare(
-      oldPassword,
-      findUser.password
-    );
-    if (!isOldPasswordMatch) {
-      throw new Error("Invalid old password");
-    }
-
-    const hashedNewPassword = await bcryptjs.hash(newPassword, 10);
-
-    findUser.password = hashedNewPassword;
-
-    await findUser.save();
+    await authServices.updateUserPassword(id, oldPassword, newPassword);
 
     res.status(200).json(new ApiResponse(200, null, "Password updated"));
   }

@@ -16,7 +16,6 @@ app.use("/api/v1/auth", authRouter);
 
 // custom middleware
 import { notFound, errorHandler } from "./middleware/errorHandler.middleware";
-import cookieParser = require("cookie-parser");
 
 app.use(notFound);
 app.use(errorHandler);
