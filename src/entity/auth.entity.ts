@@ -37,6 +37,17 @@ export class Auth extends BaseEntity {
   })
   phone: string;
 
+  @Column({
+    enum: ["admin", "user"],
+    default: "user",
+  })
+  role: string;
+
+  @Column({
+    nullable: true,
+  })
+  refreshToken: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

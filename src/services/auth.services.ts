@@ -42,10 +42,34 @@ export const loginUser = async (email: string, password: string) => {
     throw new Error("invalid credentials");
   }
 
-  const accessToken = await generateAccessToken(user.id);
-  const refreshToken = await generateRefreshToken(user.id);
+  const accessToken = generateAccessToken(user.id);
+  const refreshToken = generateRefreshToken(user.id);
 
-  return { user, accessToken, refreshToken };
+  user.refreshToken = refreshToken;
+  await user.save();
+
+  const loggedInUser = {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    phone: user.phone,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+
+  return { user: loggedInUser, accessToken, refreshToken };
+};
+
+// logout user
+export const logoutUser = async (id: string) => {
+  const user = await Auth.findOneBy({ id });
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  user.refreshToken = null;
+  await user.save();
+  return user;
 };
 
 // get all users
