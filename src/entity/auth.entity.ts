@@ -48,6 +48,17 @@ export class Auth extends BaseEntity {
   })
   refreshToken: string;
 
+  @Column({
+    nullable: true,
+  })
+  otp: number;
+
+  @Column({
+    nullable: true,
+    type: "bigint",
+  })
+  otpExpiry: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

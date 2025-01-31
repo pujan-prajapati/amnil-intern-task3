@@ -3,6 +3,7 @@ import * as asyncHandler from "express-async-handler";
 import { ApiResponse } from "../utils/ApiResponse";
 import * as authServices from "../services/auth.services";
 import { validateId } from "../utils/validateId";
+import { sendMail } from "../utils/sendMail";
 
 // register user
 export const registerUser = asyncHandler(
@@ -102,5 +103,53 @@ export const updateUserPassword = asyncHandler(
     await authServices.updateUserPassword(id, oldPassword, newPassword);
 
     res.status(200).json(new ApiResponse(200, null, "Password updated"));
+  }
+);
+
+// forgot password
+export const forgotPassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email } = req.body;
+
+    const { otp, user } = await authServices.forgotPassword(email);
+
+    const subject = "Password Reset OTP";
+    const text = `Your OTP for password reset is ${otp}`;
+    const html = `
+  <h1>Password Reset OTP</h1>
+  <p>Your OTP for password reset is <strong>${otp}</strong></p>
+  <p>OTP will expire in 5 minutes</p>
+  `;
+
+    await sendMail(email, subject, text, html);
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, { user }, "OTP Sent Successfully"));
+  }
+);
+
+// verifyOTP
+export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+
+  await authServices.verfiyOTP(email, otp);
+  res.status(200).json(new ApiResponse(200, null, "OTP verified successfully"));
+});
+
+// reset password
+export const resetPassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email, newPassword, confirmPassword } = req.body;
+
+    const user = await authServices.resetPassword(
+      email,
+      newPassword,
+      confirmPassword
+    );
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, null, "Password reset successfully"));
   }
 );

@@ -5,6 +5,15 @@ import {
   generateRefreshToken,
 } from "../utils/generateToken";
 
+// find user
+export const findUser = async (email: string) => {
+  const user = await Auth.findOneBy({ email });
+  if (!user) {
+    throw new Error("User not found");
+  }
+  return user;
+};
+
 // register user
 export const registerUser = async (
   username: string,
@@ -118,6 +127,61 @@ export const updateUserPassword = async (
 
   user.password = hashedNewPassword;
   user.save();
+
+  return user;
+};
+
+// generate Otp
+const generateOTP = () => {
+  return Math.floor(10000 + Math.random() * 90000);
+};
+
+// forgot password
+export const forgotPassword = async (email: string) => {
+  const user = await findUser(email);
+
+  const otp = generateOTP();
+  const optExpiry = Date.now() + 5 * 60 * 1000;
+
+  user.otp = otp;
+  user.otpExpiry = optExpiry;
+  await user.save();
+
+  return { user, otp };
+};
+
+// verify otp
+export const verfiyOTP = async (email: string, otp: number) => {
+  const user = await findUser(email);
+  if (otp !== user.otp) {
+    throw new Error("Invalid OTP");
+  }
+
+  if (Date.now() > user.otpExpiry) {
+    throw new Error("OTP expired");
+  }
+
+  user.otp = null;
+  user.otpExpiry = null;
+  await user.save();
+
+  return user;
+};
+
+// resetPassword
+export const resetPassword = async (
+  email: string,
+  newPassword: string,
+  confirmPassword: string
+) => {
+  const user = await findUser(email);
+  if (newPassword !== confirmPassword) {
+    throw new Error("Passwords do not match");
+  }
+
+  const hashedPassword = await bcryptjs.hash(newPassword, 10);
+  user.password = hashedPassword;
+  await user.save();
 
   return user;
 };
